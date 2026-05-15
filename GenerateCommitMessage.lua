@@ -4,7 +4,12 @@
 function main()
     if not checkDependancies() then return end
 
-    createFile(fileName)
+    local remotePull = 'lastremotetemp.txt'
+    local localChanges = 'localchangestemp.txt'
+    createFile(remotePull)
+    createFile(localChanges) 
+
+
 
 
 end
@@ -20,6 +25,8 @@ function checkDependencies()
     end
 
     function git() 
+        result = os.execute("git --version")
+        if result 
 
     end
 
@@ -27,5 +34,8 @@ function checkDependencies()
 
     end
 
-    function 
+    function qwen()
+
+    end
+
 end
