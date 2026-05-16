@@ -11,31 +11,22 @@ function main()
 
 
 
-
 end
 
 function checkDependencies()
-    local dependencies = { 
-        git,
-        ollama,
-        qwen,
-    }
-    for _, func in ipairs(dependsncies) 
-        if not func() then return end
-    end
+    if not isInstalled("git") then return false end
+    if not isInstalled("ollama") then return false end
+    if not isAiInstalled() then return false end
 
-    function git() 
-        result = os.execute("git --version")
-        if result 
+    local function isInstalled(dependency) 
+        -- > /dev/null 2>&1 suppresses output from the command
+        result = os.execute(dependancy .. " --version > /dev/null 2>&1")
+        if result == true or result == 0 
+            then  return true
+            else print(dependancy .. " is required") return false
+        end
 
-    end
-
-    function ollama()
-
-    end
-
-    function qwen()
-
-    end
+    local function isAiInstalled()
+        
 
 end
