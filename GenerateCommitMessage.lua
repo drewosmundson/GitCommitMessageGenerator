@@ -27,25 +27,14 @@ function checkDependencies()
         end
 
     local function isAiInstalled(ollamaApiUrl)
-      local body, code = http.request()
+        local body, code = http.request()
+        if code == 200 then return end 
+        local data, pos, err = json.decode(json_string
+        if err then return end
 
-      if code == 200 then
-      -- Match JSON like:
-      --   "name": "llama3:8b"
-      --
-      -- Pattern breakdown:
-      --   "name"      -> match the literal key "name"
-      --   %s*         -> match optional whitespace
-      --   :           -> match the colon
-      --   %s*         -> match optional whitespace again
-      --   "([^"]+)"   -> capture everything inside the quotes
-      --                  [^"]  = any character except "
-      --                  +     = one or more characters
-      --                  ()    = return/capture this part
-      --
-      -- Result:
-      --   returns only: llama3:8b
-          local model = body:match('"name"%s*:%s*"([^"]+)"')
+      
+ 
+
 
           return model;
       end
