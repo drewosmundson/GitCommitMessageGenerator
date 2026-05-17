@@ -15,6 +15,16 @@ function Commands.gitCommitMessage(a, b)
     return a + b
 end
 
+
+
+function Commands.subtract(a, b)
+    return a - b
+end
+
+function Commands.yourCommandName(x)
+  return x
+
+-- creates a 
 function Commands.newUserPrompt()
 
 end
@@ -23,14 +33,9 @@ end
 function Commands.ls()
 
 end
--- deletes specified Command or built inPrompt
+-- deletes specified Command or built in Prompt
 function Commands.delete()
 
-function Commands.subtract(a, b)
-    return a - b
-end
 
-function Commands.yourCommandName(x)
-  return x
 
 return Commands

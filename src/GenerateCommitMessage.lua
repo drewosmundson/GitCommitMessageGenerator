@@ -1,6 +1,6 @@
 
 
-
+-- example usage
 
 
 
@@ -11,6 +11,7 @@ local ollamaApiUrl = "http://127.0.0.1:11434/api/ps"
 
 function main()
     if not checkDependancies() then return end
+    
 
     local remotePull = 'lastremotetemp.txt'
     local localChanges = 'localchangestemp.txt'
