@@ -11,31 +11,34 @@
 
 local commands = {} 
 
-function Commands.gitCommitMessage(a, b)
-    return a + b
+function Commands.gitCommitMessage()
+    return 
 end
 
-
-
-function Commands.subtract(a, b)
-    return a - b
+function Commands.addComments()
+    return
 end
 
-function Commands.yourCommandName(x)
-  return x
-
--- creates a 
-function Commands.newUserPrompt()
-
+-- creates a new prompt to be added to the promts.lua file
+function Commands.newPrompt()
+  -- check if prompts.lua exists if not create file
+  -- check if user provieded a title if not prompt for title
+  -- check if title already exists in prompts .lua if true prompt user for different title
+  -- add prompt and title to table of prompts 
 end
-
 -- lists names of commands or titles of prompts
 function Commands.ls()
+  
 
 end
--- deletes specified Command or built in Prompt
+-- Deletes specified Command or built in Prompt
 function Commands.delete()
 
+end
 
+-- function Commands.yourCommandName(x)
+--    return
+-- end
 
 return Commands
+
