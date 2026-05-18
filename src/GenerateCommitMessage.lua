@@ -6,6 +6,8 @@ local CONFIG = dofile("config")
 
 function main()
     if not checkDependancies() then return end
+
+    
 end
 
 
@@ -26,8 +28,6 @@ function checkDependencies()
         then perferdAiModel = promtUserForModelSelection() 
     end
 
-
-    
 end
 
 

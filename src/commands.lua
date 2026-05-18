@@ -9,7 +9,7 @@
 
 -- $ AliasName commitMessageGenerate -I ""
 
-local commands = {} 
+local Commands = {} 
 
 function Commands.gitCommitMessage()
     return 
