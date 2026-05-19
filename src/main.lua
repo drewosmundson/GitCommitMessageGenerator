@@ -4,6 +4,7 @@ local CONFIG = dofile("CONFIG.lua")
 
 local OLLAMA_URL = CONFIG.OLLAMA_URL
 local PREFERRED_AI_MODEL = CONFIG.PREFERRED_AI_MODEL
+local commands = dofile("commands.lua")
 
 
 local function tableContains(table, value)
@@ -108,7 +109,17 @@ end
 
 function main()
     if not checkDependencies() then return end
-    print("passed")
+    
+    local userArg = arg[1]
+
+    if not tableContains(userArg, commands) then
+        print("s% is not a valid command", arg[1])
+        commmands.help()
+    end
+    
+    if userArg and commmands[userArg] then 
+        commands[userArg]()
+    end
 end
 
 main()
