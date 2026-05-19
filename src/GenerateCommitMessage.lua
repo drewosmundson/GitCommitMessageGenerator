@@ -6,8 +6,6 @@ local CONFIG = dofile("config")
 
 function main()
     if not checkDependancies() then return end
-
-    
 end
 
 
@@ -27,13 +25,13 @@ function checkDependencies()
     if not isPreferdModelAvailable(availableModels) then return false end
         then perferdAiModel = promtUserForModelSelection() 
     end
-
 end
 
 
 local function isInstalled(dependency) 
     -- > /dev/null 2>&1 suppresses output from the command
     result = os.execute(dependancy .. " --version > /dev/null 2>&1")
+    -- depending on the version of lua this could return 0 or true on success
     if result == true or result == 0 
         then return true
         else print(dependancy .. " is required") return false
@@ -53,8 +51,11 @@ local function getJsonDataFromURL(url)
     return data
 end
 
-
-
-local function isAiInstalled()
+local function isPreferdAiInstalled(availableModels)
+    
 
 end
+
+
+
+
