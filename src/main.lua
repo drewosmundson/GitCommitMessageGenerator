@@ -1,12 +1,15 @@
 local http = require("socket.http")
 local json = require("dkjson")
+
 local CONFIG = dofile("CONFIG.lua")
+local PROMPTS = dofile("PROMPTS.lua")
 
 local OLLAMA_URL = CONFIG.OLLAMA_URL
 local PREFERRED_AI_MODEL = CONFIG.PREFERRED_AI_MODEL
-local commands = dofile("commands.lua")
+local GIT_COMMIT_INSTRUCTIONS = PROMPTS.GIT_COMMIT_INSTRUCTIONS
 
 
+-------------------- UTILS -----------------------
 local function tableContains(table, value)
     for _, v in pairs(table) do
         if v == value then return true end
@@ -14,18 +17,15 @@ local function tableContains(table, value)
     return false
 end
 
-local function savePreferrdModel(model)
-
+local function savePreferredModel(model)
     local file = io.open("CONFIG.lua", "w")
-
     file:write(string.format(
     [[return {
       OLLAMA_URL = "http://127.0.0.1:11434",
       PREFERRED_AI_MODEL = "%s",
     }]], model))
-
     file:close()
-end 
+end
 
 
 local function promtUserForModelSelection(availableModels)
@@ -36,7 +36,6 @@ local function promtUserForModelSelection(availableModels)
     end
 
     local choice = tonumber(io.read())
-
     while choice == nil or availableModels[choice] == nil do
         print("Invalid selection. Enter a number from the list:")
         for key, value in pairs(availableModels) do
@@ -50,16 +49,7 @@ local function promtUserForModelSelection(availableModels)
     return model
 end
 
-
-local function isPreferrdModelAvailable(availableModels, preferrdAiModel)
-    if not tableContains(availableModels, preferrdAiModel) then 
-        return false
-    end
-    return true
-end
-
-
-local function getJsonDataFromURL(url)
+local function getJson(url)
     local body, code = http.request(url)
     if code ~= 200 then error("Request failed: " .. tostring(code)) end
 
@@ -67,6 +57,25 @@ local function getJsonDataFromURL(url)
     if err then error("JSON decode failed: " .. err) end
 
     return data
+end
+
+
+local function postJson(url, body)
+    local responseBody = {}
+    local _, code = http.request({
+        url = url,
+        method = "POST",
+        headers = {
+            ["Content-Type"] = "application/json",
+            ["Content-Length"] = tostring(#body),
+        },
+        source = ltn12.source.string(body), -- wraps a string so it can be sent in pieces to the server
+        sink = ltn12.sink.table(responseBody), -- takes incoming pieces and adds to the table
+    })
+    if code ~= 200 then
+        error("Ollama request failed with code: " .. tostring(code))
+    end
+    return table.concat(responseBody)
 end
 
 
@@ -84,11 +93,13 @@ local function isInstalled(dependency)
 end
 
 
+
+
 function checkDependencies()
     if not isInstalled("git") then return false end
     if not isInstalled("ollama") then return false end
 
-    local data = getJsonDataFromURL(OLLAMA_URL .. "/api/tags")
+    local data = getJson(OLLAMA_URL .. "/api/tags")
     local availableModels = {}
     for _, m in ipairs(data.models or {}) do
         table.insert(availableModels, m.name)
@@ -99,7 +110,7 @@ function checkDependencies()
         return false
     end
 
-    if not isPreferrdModelAvailable(availableModels, PREFERRED_AI_MODEL) then
+    if not tableContains(availableModels, PREFERRED_AI_MODEL) then
         print("Your preferrd AI model is not available, you can change it in CONFIG.lua")
         PREFERRED_AI_MODEL = promtUserForModelSelection(availableModels)
     end
@@ -107,19 +118,131 @@ function checkDependencies()
     return true
 end
 
+
+
+
+
+
+
+
+
+
+---------- COMMANDS --------------------
+
+-- module that contains all the commands for this script.
+
+-- This table contains all the functions in this 'command' namespace to add a new command to create a new fuction
+-- named commmands."your function name here"
+-- input parameters are flags and aditional information passed
+-- Usage example: 
+
+-- $ AliasName commitMessageGenerate -I ""
+
+local function createJsonBody(model, prompt)
+    return json.encode({
+        model = model,
+        prompt = prompt,
+        stream = false,
+    })
+end
+
+
+local Commands = {}
+
+function Commands.gitCommitMessage()
+    os.execute("git add .")
+
+    local handle = io.popen("git diff --staged")
+    local diff = handle:read("*a")
+    handle:close()
+
+    if diff == "" then
+        print("No staged changes detected. Save your changes before running this command.")
+        return false
+    end
+
+    local prompt = string.format(GIT_COMMIT_INSTRUCTIONS, diff)
+    local body = createJsonBody(PREFERRED_AI_MODEL, prompt)
+
+    print("Generating commit message...")
+
+    local responseRaw = postJson(OLLAMA_URL .. "/api/generate", body)
+    local response, _, err = json.decode(responseRaw)
+
+    if err or not response then
+        print("Failed to parse Ollama response: " .. tostring(err))
+        return false
+    end
+
+    local message = response.response and response.response:match("^%s*(.-)%s*$") -- trim whitespace
+
+    if not message or message == "" then
+        print("No commit message returned from model.")
+        return false
+    end
+
+    print("\nSuggested commit message:\n")
+    print("  " .. message)
+    print("\nCommit with this message? (y/n): ")
+
+    local confirm = io.read()
+    if confirm:lower() == "y" then
+        local commitCmd = string.format('git commit -m "%s"', message:gsub('"', '\\"'))
+        os.execute(commitCmd)
+        print("Committed!")
+    else
+        print("Commit cancelled.")
+    end
+
+    return true
+end
+
+function Commands.addComments()
+    -- TODO add comments to your file
+end
+
+function Commands.chat()
+    -- TODO: starts a chat stream, clears history when finished
+end
+
+function Commands.help()
+    print("Available commands:")
+    for name, _ in pairs(Commands) do
+        print("  " .. name)
+    end
+end
+
+function Commands.delete()
+    -- TODO: deletes specified command or built-in prompt
+end
+
+function Commands.add()
+    -- TODO: adds a new command
+end
+
+
+
+
+
+
+
 function main()
     if not checkDependencies() then return end
-    
+
     local userArg = arg[1]
 
-    if not tableContains(userArg, commands) then
-        print("s% is not a valid command", arg[1])
-        commmands.help()
+    if userArg == nil then
+        Commands.help()
+        return
     end
-    
-    if userArg and commmands[userArg] then 
-        commands[userArg]()
+
+    if not userArg or not Commands[userArg] then
+        print(string.format("'%s' is not a valid command.", tostring(userArg)))
+        Commands.help()
+        return
     end
+
+    Commands[userArg]()
 end
 
 main()
