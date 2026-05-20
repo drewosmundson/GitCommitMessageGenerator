@@ -149,7 +149,7 @@ end
 
 local Commands = {}
 
-function Commands.gitCommitMessage()
+function Commands.commit()
     os.execute("git add .")
 
     local handle = io.popen("git diff --staged")
@@ -192,6 +192,38 @@ function Commands.gitCommitMessage()
         print("Committed!")
     else
         print("Commit cancelled.")
+    end
+
+    return true
+end
+
+function Commands.undo()
+    -- Show the last commit so the user knows what they're undoing
+    local handle = io.popen("git log --oneline -1")
+    local lastCommit = handle:read("*a"):match("^%s*(.-)%s*$")
+    handle:close()
+
+    if lastCommit == "" then
+        print("No commits to undo.")
+        return false
+    end
+
+    print("Last commit: " .. lastCommit)
+    print("Undo this commit? Changes will be kept staged. (y/n): ")
+
+    local confirm = io.read()
+    if confirm:lower() ~= "y" then
+        print("Undo cancelled.")
+        return false
+    end
+
+    -- Soft reset: removes the commit but keeps changes staged
+    local result = os.execute("git reset --soft HEAD~1")
+    if result == true or result == 0 then
+        print("Commit undone. Your changes are still staged.")
+    else
+        print("Failed to undo commit.")
+        return false
     end
 
     return true
