@@ -327,6 +327,7 @@ function main()
     local userArg = arg[1]
 
     if userArg == nil then
+        
         Commands.help()
         return
     end
