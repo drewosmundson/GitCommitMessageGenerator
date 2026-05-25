@@ -37,6 +37,8 @@ return {
         if err or not response then
             print("Failed to parse Ollama response: " .. tostring(err))
             return false
+
+            
         end
 
         local message = response.response and response.response:match("^%s*(.-)%s*$")
