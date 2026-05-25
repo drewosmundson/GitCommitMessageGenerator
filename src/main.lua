@@ -78,7 +78,7 @@ local function postJson(url, body)
 end
 
 local function isInstalled(dependency)
-    result = os.execute(dependency .. " --version > /dev/null 2>&1")
+    local result = os.execute(dependency .. " --version > /dev/null 2>&1")
     if result == true or result == 0 then
         return true
     else
