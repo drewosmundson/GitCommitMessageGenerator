@@ -1,19 +1,18 @@
 # GitCommitMessageGenerator
 I have RTX3060 with 16GB of ram qwen2.5-coder:7b seems to work well enough for this script for what I would like to acomplish.
-A higher parameter count may be worth it but thats just not my style.
-When you install this script then and do ollama pull [[YOUR_PREFERD_MODEL]]
+A higher parameter model may be worth it but thats just not my style.
 
-Install Dependancies:
 
+Dependancies:
 
 # Ubuntu/Debian
-## Lua 
+## 1. install Lua 
 sudo apt install lua5.4
 sudo apt install luarocks
 luarocks install --local luasocket
 luarocks install --local dkjson
 
-## Ollama
+## 2. install Ollama
 curl -fsSL https://ollama.com/install.sh | sh
 ollama serve
 ollama pull qwen2.5-coder:7b 
@@ -28,8 +27,6 @@ luarocks install --local dkjson
 
 ## Ollama
 curl -fsSL https://ollama.com/install.sh | sh
-
-
 
 
 ## How to set this script up as an alias. 
