@@ -197,7 +197,7 @@ function Commands.commit()
 
     print("Generating commit message...")
 
-    local responseRaw = postJson(OLLAMA_URL .. "/api/generate", body)
+    local responseRaw = httpUtils.postJson(OLLAMA_URL .. "/api/generate", body)
     local response, _, err = json.decode(responseRaw)
 
     if err or not response then
