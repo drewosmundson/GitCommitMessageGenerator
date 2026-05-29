@@ -2,6 +2,8 @@ local http = require("socket.http")
 local json = require("dkjson")
 local ltn12 = require("ltn12")
 
+local httpUtils = require("httpUtils")
+
 local CONFIG = dofile("CONFIG.lua")
 
 local OLLAMA_URL = CONFIG.OLLAMA_URL
@@ -110,14 +112,12 @@ local function hyperlink(url, text)
     return string.format("\27]8;;%s\27\\%s\27]8;;\27\\", url, text)
 end
 
-
 ---------- DEPENDENCY CHECKS --------------------
-
 function checkDependencies()
     if not isInstalled("git") then return false end
     if not isInstalled("ollama") then return false end
 
-    local data = getJson(OLLAMA_URL .. "/api/tags")
+    local data = httpUtils.getJson(OLLAMA_URL .. "/api/tags")
     local availableModels = {}
     for _, m in ipairs(data.models or {}) do
         table.insert(availableModels, m.name)
@@ -138,7 +138,6 @@ end
 
 
 ---------- PROMPTS --------------------
-
 local PROMPTS = {
     GIT_COMMIT_INSTRUCTIONS = [[
         You generate a single git commit message from a git diff.
@@ -165,6 +164,8 @@ local PROMPTS = {
 }
 
 local GIT_COMMIT_INSTRUCTIONS = PROMPTS.GIT_COMMIT_INSTRUCTIONS
+
+
 
 
 ---------- COMMANDS --------------------
