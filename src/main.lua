@@ -51,33 +51,7 @@ local function promtUserForModelSelection(availableModels)
     return model
 end
 
-local function getJson(url)
-    local body, code = http.request(url)
-    if code ~= 200 then error("Request failed: " .. tostring(code)) end
 
-    local data, _, err = json.decode(body)
-    if err then error("JSON decode failed: " .. err) end
-
-    return data
-end
-
-local function postJson(url, body)
-    local responseBody = {}
-    local _, code = http.request({
-        url = url,
-        method = "POST",
-        headers = {
-            ["Content-Type"] = "application/json",
-            ["Content-Length"] = tostring(#body),
-        },
-        source = ltn12.source.string(body),
-        sink = ltn12.sink.table(responseBody),
-    })
-    if code ~= 200 then
-        error("Ollama request failed with code: " .. tostring(code))
-    end
-    return table.concat(responseBody)
-end
 
 local function isInstalled(dependency)
     local result = os.execute(dependency .. " --version > /dev/null 2>&1")
@@ -280,13 +254,13 @@ function Commands.isNameAvailable()
     for registry_name, urls in pairs(REGISTRIES) do
         local check_url = string.format(urls.check, name)
         local link_url  = string.format(urls.link,  name)
-        local status    = getHttpStatus(check_url)
+        local status    = httpUtils.getHttpStatus(check_url)
 
         if status == 404 then
             print(string.format("%-18s \27[32m%-12s\27[0m %-30s",
                 registry_name, "404", "Available"))
         elseif status == 200 then
-            local verdict = string.format("TAKEN  %s", hyperlink(link_url, link_url))
+            local verdict = string.format("TAKEN  %s", string.format("\27]8;;%s\27\\%s\27]8;;\27\\", link_url, link_url))
             print(string.format("%-18s \27[31m%-12s\27[0m %s",
                 registry_name, "200", verdict))
         else

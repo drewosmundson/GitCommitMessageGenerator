@@ -34,4 +34,15 @@ function httpUtils.postJson(url, body)
 end 
 
 
+function httpUtils.getHttpStatus(url)
+    local cmd = string.format("curl -s -o /dev/null -w '%%{http_code}' -L --max-time 5 '%s'", url)
+    local handle = io.popen(cmd)
+    if not handle then return 0 end
+    local result = handle:read("*a")
+    handle:close()
+    return tonumber(result) or 0
+end
+
+
+
 return httpUtils
