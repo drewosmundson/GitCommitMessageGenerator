@@ -1,6 +1,7 @@
-local http = require("socket.http")
 local json = require("dkjson")
 local ltn12 = require("ltn12")
+local lfs = require("lfs")
+
 
 local httpUtils = require("httpUtils")
 
@@ -11,6 +12,34 @@ local PREFERRED_AI_MODEL = CONFIG.PREFERRED_AI_MODEL
 
 
 -------------------- UTILS -----------------------
+
+local function getLuaFilesFromDirectory(path)
+    local files = {}
+    for filename in lfs.dir(path) do
+        -- Ignore the default '.' (current) and '..' (parent) directory markers
+        if filename ~= "." and filename ~= ".." then
+            table.insert(files, filename)
+        end
+    end
+    return files
+end
+
+local function loadModulesFromFileTable(path, fileTable)
+    local loadedModules = {}
+
+    for _, filename in ipairs(fileTable) do
+        -- Match files ending in .lua and extract the name without extension
+        local moduleName = filename:match("(.+)%.lua$")
+
+        if moduleName then
+            print("Loading module: " .. moduleName)
+            loadedModules[moduleName] = require(path .. "." .. moduleName)
+        end
+    end
+    return loadedModules -- usage: loadedModules["script"].functionName()
+end
+
+
 
 local function tableContains(table, value)
     for _, v in pairs(table) do
@@ -73,19 +102,6 @@ local REGISTRIES = {
     ["GitHub (Repo)"]  = { check = "https://github.com/%s",                    link = "https://github.com/%s" },
 }
 
-local function getHttpStatus(url)
-    local cmd = string.format("curl -s -o /dev/null -w '%%{http_code}' -L --max-time 5 '%s'", url)
-    local handle = io.popen(cmd)
-    if not handle then return 0 end
-    local result = handle:read("*a")
-    handle:close()
-    return tonumber(result) or 0
-end
-
-local function hyperlink(url, text)
-    return string.format("\27]8;;%s\27\\%s\27]8;;\27\\", url, text)
-end
-
 ---------- DEPENDENCY CHECKS --------------------
 function checkDependencies()
     if not isInstalled("git") then return false end
@@ -140,18 +156,7 @@ local PROMPTS = {
 local GIT_COMMIT_INSTRUCTIONS = PROMPTS.GIT_COMMIT_INSTRUCTIONS
 
 
-
-
 ---------- COMMANDS --------------------
-
-local function createJsonBody(model, prompt)
-    return json.encode({
-        model = model,
-        prompt = prompt,
-        stream = false,
-    })
-end
-
 local Commands = {}
 
 function Commands.commit()
@@ -167,8 +172,11 @@ function Commands.commit()
     end
 
     local prompt = string.format(GIT_COMMIT_INSTRUCTIONS, diff)
-    local body = createJsonBody(PREFERRED_AI_MODEL, prompt)
-
+    local body = json.encode({
+        model = PREFERRED_AI_MODEL,
+        prompt = prompt,
+        stream = false,
+    })
     print("Generating commit message...")
 
     local responseRaw = httpUtils.postJson(OLLAMA_URL .. "/api/generate", body)
