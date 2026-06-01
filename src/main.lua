@@ -2,8 +2,8 @@ local json = require("dkjson")
 local ltn12 = require("ltn12")
 local lfs = require("lfs")
 
-
-local httpUtils = require("httpUtils")
+local UTILS = require("utils")
+local HTTP = require("http")
 
 local CONFIG = dofile("CONFIG.lua")
 
@@ -41,12 +41,6 @@ end
 
 
 
-local function tableContains(table, value)
-    for _, v in pairs(table) do
-        if v == value then return true end
-    end
-    return false
-end
 
 local function savePreferredModel(model)
     local file = io.open("CONFIG.lua", "w")
@@ -107,7 +101,7 @@ function checkDependencies()
     if not isInstalled("git") then return false end
     if not isInstalled("ollama") then return false end
 
-    local data = httpUtils.getJson(OLLAMA_URL .. "/api/tags")
+    local data = HTTP.getJson(OLLAMA_URL .. "/api/tags")
     local availableModels = {}
     for _, m in ipairs(data.models or {}) do
         table.insert(availableModels, m.name)
@@ -118,7 +112,7 @@ function checkDependencies()
         return false
     end
 
-    if not tableContains(availableModels, PREFERRED_AI_MODEL) then
+    if not UTILS.tableContains(availableModels, PREFERRED_AI_MODEL) then
         print("Your preferred AI model is not available, you can change it in CONFIG.lua")
         PREFERRED_AI_MODEL = promtUserForModelSelection(availableModels)
     end
@@ -179,7 +173,7 @@ function Commands.commit()
     })
     print("Generating commit message...")
 
-    local responseRaw = httpUtils.postJson(OLLAMA_URL .. "/api/generate", body)
+    local responseRaw = HTTP.postJson(OLLAMA_URL .. "/api/generate", body)
     local response, _, err = json.decode(responseRaw)
 
     if err or not response then
@@ -201,8 +195,13 @@ function Commands.commit()
     local confirm = io.read()
     if confirm:lower() == "y" then
         local commitCmd = string.format('git commit -m "%s"', message:gsub('"', '\\"'))
-        os.execute(commitCmd)
-        print("Committed!")
+        local ok, reason, code = os.execute(commitCmd)
+
+        if ok then
+            print("Committed!")
+        else
+            print(("Commit failed: %s (%s)"):format(tostring(reason), tostring(code)))
+        end
     else
         print("Commit cancelled.")
     end
@@ -262,7 +261,7 @@ function Commands.isNameAvailable()
     for registry_name, urls in pairs(REGISTRIES) do
         local check_url = string.format(urls.check, name)
         local link_url  = string.format(urls.link,  name)
-        local status    = httpUtils.getHttpStatus(check_url)
+        local status    = HTTP.getHttpStatus(check_url)
 
         if status == 404 then
             print(string.format("%-18s \27[32m%-12s\27[0m %-30s",
