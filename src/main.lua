@@ -5,7 +5,8 @@ local UTILS = require("utils")
 local HTTP = require("http")
 
 local CONFIG = dofile("CONFIG.lua")
-
+local OLLAMA_URL = CONFIG.OLLAMA_URL
+local PREFERRED_AI_MODEL = CONFIG.PREFERRED_AI_MODEL
 
 local function savePreferredModelToConfig(model)
     local file = io.open("CONFIG.lua", "w")
@@ -69,9 +70,9 @@ function checkDependencies()
         return false
     end
 
-    if not UTILS.tableContains(availableModels, CONFIG.PREFERRED_AI_MODEL) then
+    if not UTILS.tableContains(availableModels, PREFERRED_AI_MODEL) then
         print("Your preferred AI model is not available, you can change it in CONFIG.lua")
-        promtUserForModelSelection(availableModels)
+        PREFERRED_AI_MODEL = promtUserForModelSelection(availableModels)
     end
 
     return true
@@ -87,20 +88,18 @@ function main()
     local userArg = arg[1]
     local flag = arg[2]
 
-    print(CONFIG.PREFERRED_AI_MODEL .. " ")
-
     local commands = {}
 
     for file in lfs.dir("commands/") do
         local name = file:match("^(.+)%.lua$")
     
         if name then
-            local ok, cmd = pcall(require, "commands." .. name)
+            local ok, command = pcall(require, "commands." .. name)
     
-            if ok then
-                commands[name] = cmd
+            if ok and type(command) == "table" then
+                commands[name] = command
             else
-                print("Failed to load command:", name, cmd)
+                print("Failed to load command:", name)
             end
         end
     end
@@ -116,14 +115,14 @@ function main()
     } 
 
     if userArg == nil then
-        commands["help"].run()
+        commands["help"].run(app, flag)
         return
     end
 
 
     if not commands[userArg] then
         print(string.format("'%s' is not a valid command.", tostring(userArg)))
-        commands["help"].run()
+        commands["help"].run(app, flag)
         return
     end
 
