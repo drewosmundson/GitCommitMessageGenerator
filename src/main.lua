@@ -1,5 +1,4 @@
 local json = require("dkjson")
-local ltn12 = require("ltn12")
 local lfs = require("lfs")
 
 local UTILS = require("utils")
@@ -137,13 +136,15 @@ function main()
 
     print(app.PREFERRED_AI_MODEL)
 
-    
+    commands = {}
 
-    commands = {
-        commit = require("commands.commit"),
-        uncommit = require("commands.uncommit"),
-        find = require("commands.find"),
-    }
+    for file in lfs.dir("commands/") do
+        local name = file:match("^(.+)%.lua$")
+        if name then
+            commands[name] = require("commands." .. name)
+        end
+    end
+
     commands[userArg].run(app, flag)
     return true
 end
