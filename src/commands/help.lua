@@ -1,8 +1,7 @@
--- help.lua
+-- commands/help.lua
 
 -- Prints a list of all available commands that the app can call
 -- Usage: luna help.lua [-usage]
-
 
 return {
     description = "Show this help message",
@@ -10,7 +9,7 @@ return {
         print("Usage: luna <command>\n")
         print("Commands:")
         for name, cmd in pairs(app.commands) do
-            print(string.format("  %-20s %s", name, cmd.description))
+            print(string.format("  %-20s %s", name, cmd.description or ""))
         end
     end
 }

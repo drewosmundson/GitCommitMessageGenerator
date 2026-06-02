@@ -82,61 +82,17 @@ end
 
 
 
-
----------- COMMANDS --------------------
-local Commands = {}
-
-function Commands.commit()
-end
-
-function Commands.uncommit()
-end
-
-function Commands.find()
-end
-
-
-function Commands.help()
-    print("Available commands:")
-    for name, _ in pairs(Commands) do
-        print("  " .. name)
-    end
-end
-
-
-
 ---------- MAIN --------------------
 
 function main()
     if not checkDependencies() then return end
 
     local userArg = arg[1]
-
-    if userArg == nil then
-        Commands.help()
-        return
-    end
-
-    if not Commands[userArg] then
-        print(string.format("'%s' is not a valid command.", tostring(userArg)))
-        Commands.help()
-        return
-    end
-
-
-
     local flag = arg[2]
-    local app = {
-        PREFERRED_AI_MODEL = CONFIG.PREFERRED_AI_MODEL,
-        OLLAMA_URL         = CONFIG.OLLAMA_URL,
-        UTILS              = require("utils"),
-        JSON               = require("dkjson"),
-        HTTP               = require("http"),
-    } 
 
-    print(app.PREFERRED_AI_MODEL)
+    print(CONFIG.PREFERRED_AI_MODEL .. " ")
 
-    commands = {}
+    local commands = {}
 
     for file in lfs.dir("commands/") do
         local name = file:match("^(.+)%.lua$")
@@ -145,7 +101,32 @@ function main()
         end
     end
 
+
+    local app = {
+        PREFERRED_AI_MODEL = PREFERRED_AI_MODEL,
+        OLLAMA_URL         = OLLAMA_URL,
+        UTILS              = require("utils"),
+        JSON               = require("dkjson"),
+        HTTP               = require("http"),
+        commands           = commands
+    } 
+
+    if userArg == nil then
+        commands["help"].run()
+        return
+    end
+
+
+    if not commands[userArg] then
+        print(string.format("'%s' is not a valid command.", tostring(userArg)))
+        commands["help"].run()
+        return
+    end
+
+
     commands[userArg].run(app, flag)
+
+
     return true
 end
 
