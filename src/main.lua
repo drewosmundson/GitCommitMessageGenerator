@@ -11,38 +11,7 @@ local OLLAMA_URL = CONFIG.OLLAMA_URL
 local PREFERRED_AI_MODEL = CONFIG.PREFERRED_AI_MODEL
 
 
--------------------- UTILS -----------------------
-
-local function getLuaFilesFromDirectory(path)
-    local files = {}
-    for filename in lfs.dir(path) do
-        -- Ignore the default '.' (current) and '..' (parent) directory markers
-        if filename ~= "." and filename ~= ".." then
-            table.insert(files, filename)
-        end
-    end
-    return files
-end
-
-local function loadModulesFromFileTable(path, fileTable)
-    local loadedModules = {}
-
-    for _, filename in ipairs(fileTable) do
-        -- Match files ending in .lua and extract the name without extension
-        local moduleName = filename:match("(.+)%.lua$")
-
-        if moduleName then
-            print("Loading module: " .. moduleName)
-            loadedModules[moduleName] = require(path .. "." .. moduleName)
-        end
-    end
-    return loadedModules -- usage: loadedModules["script"].functionName()
-end
-
-
-
-
-local function savePreferredModel(model)
+local function savePreferredModelToConfig(model)
     local file = io.open("CONFIG.lua", "w")
     file:write(string.format(
     [[return {
@@ -70,7 +39,7 @@ local function promtUserForModelSelection(availableModels)
     end
 
     local model = availableModels[choice]
-    savePreferredModel(model)
+    savePreferredModelToConfig(model)
     return model
 end
 
@@ -87,14 +56,6 @@ local function isInstalled(dependency)
     end
 end
 
--- Registry table: check URL (for HTTP probe) + link URL (shown when taken)
-local REGISTRIES = {
-    ["Cargo (Rust)"]   = { check = "https://crates.io/crates/%s",              link = "https://crates.io/crates/%s" },
-    ["PyPI (Python)"]  = { check = "https://pypi.org/project/%s",              link = "https://pypi.org/project/%s" },
-    ["LuaRocks (Lua)"] = { check = "https://luarocks.org/modules/luarocks/%s", link = "https://luarocks.org/modules/luarocks/%s" },
-    ["npm (Node.js)"]  = { check = "https://registry.npmjs.org/%s",            link = "https://npmjs.com/package/%s" },
-    ["GitHub (Repo)"]  = { check = "https://github.com/%s",                    link = "https://github.com/%s" },
-}
 
 ---------- DEPENDENCY CHECKS --------------------
 function checkDependencies()
@@ -121,171 +82,20 @@ function checkDependencies()
 end
 
 
----------- PROMPTS --------------------
-local PROMPTS = {
-    GIT_COMMIT_INSTRUCTIONS = [[
-        You generate a single git commit message from a git diff.
-        Rules:
-        - Output must follow Conventional Commits style.
-        - Choose type based on changes:
-          feat: new functionality
-          fix: bug fix
-          refactor: no behavior change
-          docs: documentation only
-          test: tests only
-          chore: tooling, build, config
-        - Be concise. No fluff.
-        - Subject line max 72 characters.
-        - Use imperative mood ("add", "fix", "remove").
-        - Do not invent changes not present in the diff.
-        - If unclear, default to refactor.
-        - Output ONLY the commit message. No explanation, no formatting.
-
-        <diff>
-        %s
-        </diff>
-    ]],
-}
-
-local GIT_COMMIT_INSTRUCTIONS = PROMPTS.GIT_COMMIT_INSTRUCTIONS
 
 
 ---------- COMMANDS --------------------
 local Commands = {}
 
 function Commands.commit()
-    os.execute("git add .")
-
-    local handle = io.popen("git diff --staged")
-    local diff = handle:read("*a")
-    handle:close()
-
-    if diff == "" then
-        print("No staged changes detected. Save your changes before running this command.")
-        return false
-    end
-
-    local prompt = string.format(GIT_COMMIT_INSTRUCTIONS, diff)
-    local body = json.encode({
-        model = PREFERRED_AI_MODEL,
-        prompt = prompt,
-        stream = false,
-    })
-    print("Generating commit message...")
-
-    local responseRaw = HTTP.postJson(OLLAMA_URL .. "/api/generate", body)
-    local response, _, err = json.decode(responseRaw)
-
-    if err or not response then
-        print("Failed to parse Ollama response: " .. tostring(err))
-        return false
-    end
-
-    local message = response.response and response.response:match("^%s*(.-)%s*$")
-
-    if not message or message == "" then
-        print("No commit message returned from model.")
-        return false
-    end
-
-    print("\nSuggested commit message:\n")
-    print("  " .. message)
-    print("\nCommit with this message? (y/n): ")
-
-    local confirm = io.read()
-    if confirm:lower() == "y" then
-        local commitCmd = string.format('git commit -m "%s"', message:gsub('"', '\\"'))
-        local ok, reason, code = os.execute(commitCmd)
-
-        if ok then
-            print("Committed!")
-        else
-            print(("Commit failed: %s (%s)"):format(tostring(reason), tostring(code)))
-        end
-    else
-        print("Commit cancelled.")
-    end
-
-    return true
 end
 
-function Commands.undo()
-    local handle = io.popen("git log --oneline -1")
-    local lastCommit = handle:read("*a"):match("^%s*(.-)%s*$")
-    handle:close()
-
-    if lastCommit == "" then
-        print("No commits to undo.")
-        return false
-    end
-
-    print("Last commit: " .. lastCommit)
-    print("Undo this commit? Changes will be kept staged. (y/n): ")
-
-    local confirm = io.read()
-    if confirm:lower() ~= "y" then
-        print("Undo cancelled.")
-        return false
-    end
-
-    local result = os.execute("git reset --soft HEAD~1")
-    if result == true or result == 0 then
-        print("Commit undone. Your changes are still staged.")
-    else
-        print("Failed to undo commit.")
-        return false
-    end
-
-    return true
+function Commands.uncommit()
 end
 
-
-
-function Commands.isNameAvailable()
-    local name = arg[2]
-
-    if not name then
-        print("Usage: <script> isNameAvailable <name>")
-        return false
-    end
-
-    if name:match("[^%w%-_]") then
-        print("Error: Invalid name. Use only letters, numbers, hyphens, and underscores.")
-        return false
-    end
-
-    print(string.format("Checking availability for: '%s'\n", name))
-    print(string.format("%-18s %-12s %-30s", "Registry", "Status", "Verdict"))
-    print(string.rep("-", 60))
-
-    for registry_name, urls in pairs(REGISTRIES) do
-        local check_url = string.format(urls.check, name)
-        local link_url  = string.format(urls.link,  name)
-        local status    = HTTP.getHttpStatus(check_url)
-
-        if status == 404 then
-            print(string.format("%-18s \27[32m%-12s\27[0m %-30s",
-                registry_name, "404", "Available"))
-        elseif status == 200 then
-            local verdict = string.format("TAKEN  %s", string.format("\27]8;;%s\27\\%s\27]8;;\27\\", link_url, link_url))
-            print(string.format("%-18s \27[31m%-12s\27[0m %s",
-                registry_name, "200", verdict))
-        else
-            print(string.format("%-18s \27[33m%-12s\27[0m %-30s",
-                registry_name, tostring(status), "Unknown or Error"))
-        end
-    end
-
-    return true
+function Commands.find()
 end
 
-function Commands.addComments()
-    -- TODO: add comments to your file
-end
-
-function Commands.chat()
-    -- TODO: starts a chat stream, clears history when finished
-end
 
 function Commands.help()
     print("Available commands:")
@@ -294,12 +104,6 @@ function Commands.help()
     end
 end
 
-function Commands.usage()
-    print("Available commands:")
-    for name, _ in pairs(Commands) do
-        print("  " .. name)
-    end
-end
 
 
 ---------- MAIN --------------------
@@ -320,7 +124,28 @@ function main()
         return
     end
 
-    Commands[userArg]()
+
+
+    local flag = arg[2]
+    local app = {
+        PREFERRED_AI_MODEL = CONFIG.PREFERRED_AI_MODEL,
+        OLLAMA_URL         = CONFIG.OLLAMA_URL,
+        UTILS              = require("utils"),
+        JSON               = require("dkjson"),
+        HTTP               = require("http"),
+    } 
+
+    print(app.PREFERRED_AI_MODEL)
+
+    
+
+    commands = {
+        commit = require("commands.commit"),
+        uncommit = require("commands.uncommit"),
+        find = require("commands.find"),
+    }
+    commands[userArg].run(app, flag)
+    return true
 end
 
-main()
+main() 

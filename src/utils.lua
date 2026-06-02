@@ -1,10 +1,7 @@
 
 local lfs = require("lfs")
 
-
-
 local utils = {}
-
 
 function utils.getLuaFilesFromDirectory(path)
     local files = {}
@@ -40,7 +37,6 @@ function utils.tableContains(table, value)
     end
     return false
 end
-
 
 
 return utils
