@@ -17,6 +17,24 @@ local PROMPTS = {
 return {
     description = "Given the previous output of the terminal explain what its meaning is",
 
-    run = function(app, flag)
+
+    run = function(app, args)
+    
+        local command = table.concat(arg, " ", 2)
+        
+        local pipe = io.popen(command)
+
+        local output = pipe:read("*a")
+        pipe:close()
+
+        local pipe = io.popen("git add .") 
+        local diff = pipe:read("*a") 
+        -- send output to LLM for analysis 
+
+        io.popen("git reset") 
+
+
+    print(output)
+    
     end
 }
