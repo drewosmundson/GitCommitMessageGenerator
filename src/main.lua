@@ -102,7 +102,7 @@ function main()
                 print("Failed to load command:", name)
             end
         end
-    end
+    end 
 
 
     local app = {

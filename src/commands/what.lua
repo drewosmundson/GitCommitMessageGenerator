@@ -5,11 +5,16 @@ local PROMTS = {
 } 
 
 
-return {
+what = {
     description = ""
     run = function(app, args) 
         local testCommand = args[2]
         io.popen(testCommand)
-        
+        return
+    end
+}
 
-} 
+
+
+
+return what
