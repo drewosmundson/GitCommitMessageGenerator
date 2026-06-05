@@ -26,6 +26,28 @@ local ALLOWED = {
 
 local BLOCKED_CHAR = "[;&><|`$]"
 
+-- example usage startProcess(lua, {arg1, arg2}, {cwd="path", env={debug=1, ETC}})
+-- run_process(
+--    "python",
+--    {"script.py", "--verbose"},
+--    {
+--        cwd = "/tmp",
+--        env = {
+--            "DEBUG=1",
+ --     }
+--    }
+--)
+
+local function startProcess(command, args, options)
+
+
+
+
+
+
+    return 
+
+end
 
 return   {
     description = "Run an allowed command and use AI to explain the output.",
