@@ -1,3 +1,5 @@
+local uv = require("luv")
+
 local PROMTS = {
 
     EVALUATE_COMMAND_OUTPUT = [[You are a developer assistant. 
@@ -39,9 +41,41 @@ local BLOCKED_CHAR = "[;&><|`$]"
 --)
 
 local function startProcess(command, args)
+        --old method using shell new method spawns a process using
+        -- the libuv lua library 
 
-    stdout = {}
-    stderr = {} 
+        --local pipe = io.popen(fullCommand)
+        --if not pipe then
+            --print("command produced no output")
+            --return 
+        --end 
+        --local output = pipe:read(8192)
+        --local ok, reason, code = pipe:close()
+
+    local stdout = uv.new_pipe(false)
+    local stderr = uv.new_pipe(false)
+    local code = nil
+
+    local handle, pid = uv.spawn(
+        command, 
+        { args = args, stdio = { nil, stdout, stderr } },
+        function(code, signal)
+            print("Exited with code: ", code)
+            stdout:close()
+            stderr:close()
+            handle:close()
+        end
+    )
+
+    local uv.read_start()
+
+
+
+
+
+
+
+
 
 
 
@@ -57,7 +91,7 @@ return   {
         -- $luna what lua main.lua commit
         -- $lua main.lua what lua main.lua commit 
         local target = "what"
-        local baseCommand = "" 
+        local baseCommand = ""
         local commandArgs = {}
         for i, v in ipairs(args)
             if v == target then 
@@ -93,18 +127,6 @@ return   {
             print(input .. " cancelled")
             return
         end
-
-
-        --old method using shell new method spawns a process using
-        -- the libuv lua library 
-
-        --local pipe = io.popen(fullCommand)
-        --if not pipe then
-            --print("command produced no output")
-            --return 
-        --end 
-        --local output = pipe:read(8192)
-        --local ok, reason, code = pipe:close()
 
         local processOutputTable = startProcess(baseCommand, commandArgs)
 
