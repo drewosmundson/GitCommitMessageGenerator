@@ -40,6 +40,9 @@ local BLOCKED_CHAR = "[;&><|`$]"
 
 local function startProcess(command, args, options)
 
+    stdout = {}
+    stderr = {} 
+
 
 
 
