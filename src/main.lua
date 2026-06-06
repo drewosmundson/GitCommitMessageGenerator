@@ -31,7 +31,7 @@ local function promtUserForModelSelection(availableModels)
         print("Invalid selection. Enter a number from the list:")
         for key, value in pairs(availableModels) do
             print(key, value)
-        end
+        end                                                  
         choice = tonumber(io.read())
     end
 

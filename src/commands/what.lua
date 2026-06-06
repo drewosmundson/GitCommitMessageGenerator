@@ -14,8 +14,7 @@ local PROMTS = {
         Explain what the output means in the context of the diff.
         Identify if any of the changes are likely causing errors or unexpected behavior.
         Be concise and actionable.]],
-
-} 
+}
 
 -- Add a command to this list to be allowed to run
 local ALLOWED = { 
@@ -28,58 +27,93 @@ local ALLOWED = {
 
 local BLOCKED_CHAR = "[;&><|`$]"
 
--- example usage startProcess(lua, {arg1, arg2}, {cwd="path", env={debug=1, ETC}})
--- run_process(
---    "python",
---    {"script.py", "--verbose"},
---    {
---        cwd = "/tmp",
---        env = {
---            "DEBUG=1",
- --     }
---    }
---)
-
-local function getStdioData(err, data)
-    assert(not err)
-    if data then
-        io.write("[OUT] ", data)
-    end
-end
+local TIMEOUT_LIMIT = 100000 -- Miliseconds
 
 
 local function startProcess(command, args)
     local stdout = uv.new_pipe(false)
     local stderr = uv.new_pipe(false)
-    local code = nil
 
+    local stdout_data = {}
+    local stderr_data = {}
+
+    local exitCode   = nil
+    local exitSignal = nil
+    local done       = false
+
+    local timer = uv.new_timer()
+
+    -- uv.spawn(path, options, callback)
     local handle, pid = uv.spawn(
-        command, 
-        { args = args, stdio = { nil, stdout, stderr } },
-        function(code, signal)
-            print("Exited with code: ", code)
+        command,                            -- Path
+
+        {
+            args = args,                    -- Options
+            stdio = { nil, stdout, stderr }
+        },
+
+        function(code, signal)              -- Callback
+            exitCode   = code
+            exitSignal = signal
+            done       = true
+
+            timer:stop()
+            timer:close()
             stdout:close()
             stderr:close()
             handle:close()
+
         end
     )
 
-    print("Started process with pid:", pid) 
-    
-    uv.read_start(stdout, getStdioData("OUT"))
-   
-    uv.read_start(stderr, getsStdioData("ERR"))
+    if not handle then
+        return nil, "Failed to spawn process: " .. pid  -- pid holds err msg on failure
+    end
 
-    uv.run()
-    
-    return (stdout, stderr, code) 
+
+    print("Started process with pid:", pid)
+
+
+    uv.read_start(stdout, function(err, data)
+        if err then print("stdout error") return end
+        if data then table.insert(stdout_data, data) end
+    end)
+
+    uv.read_start(stderr, function(err, data)
+        if err then print("stdout error") return end
+        if data then table.insert(stderr_data, data) end
+    end)
+
+
+    timer:start(TIMEOUT_LIMIT, 0, function()
+        print("Process timed out")
+        if handle and not handle:is_closing() then handle:kill("sigterm") end
+
+        if not stdout:is_closing() then stdout:close() end
+        if not stderr:is_closing() then stderr:close() end
+
+        timer:stop()
+        timer:close()
+    end)
+
+
+    while not done do
+        uv.run("nowait")
+    end
+
+
+    return {
+        stdout   = table.concat(stdout_data),
+        stderr   = table.concat(stderr_data),
+        exitCode = exitCode,
+        signal   = exitSignal,
+    }
 end
-    
 
-return   {
+return {
     description = "Run an allowed command and use AI to explain the output.",
 
-    run = function(app, args) 
+    run = function(app, args)
 
         -- $luna what lua main.lua commit
         -- $lua main.lua what lua main.lua commit 
@@ -87,9 +121,11 @@ return   {
         local baseCommand = ""
         local commandArgs = {}
 
-            if v == target then 
+        for i, v in ipairs(args) do
+            if v == target then
                 baseCommand = args[i+1]
-                commandArgs = table.concat(args, " ", i+2)
+                commandArgs = { table.unpack(args, i+2) }
+                break
             end
         end
 
@@ -104,14 +140,14 @@ return   {
             return
         end
 
-        if commandArgs:find(BLOCKED_CHAR) then 
+        if table.concat(commandArgs, " "):find(BLOCKED_CHAR) then
             print("command contains blocked charectors")
             print("edit this in commands/what.lua BLOCKED_CHAR")
             return
         end
 
         print("Are you sure you want to run this command?:")
-        print(baseCommand .. " " .. commandArgs)
+        print(baseCommand .. " " .. table.concat(commandArgs, " "))
         print("( y / n )")
 
         local input = io.read()
@@ -124,11 +160,19 @@ return   {
         local processOutputTable = startProcess(baseCommand, commandArgs)
 
 
+        for i, v in ipairs(processOutputTable) do
+            print(i, v)
+        end
 
+
+
+
+
+        -- TODO BELOW
         -- send output and instruction prompt to llm
         -- print out llms explination of the output of the command 
 
-        print("would you like to compare to your last commit to try to diagnose?:")
+        print("would you like to compare to your last commit to try and diagnose?:")
         print("( y / n )")
 
         input = io.read()
@@ -137,7 +181,7 @@ return   {
             print(input) 
             return
         end
-            
+
         -- git add .
         -- local diff = git diff 
 
