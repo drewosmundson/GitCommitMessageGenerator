@@ -40,18 +40,15 @@ local BLOCKED_CHAR = "[;&><|`$]"
 --    }
 --)
 
+local function getStdioData(err, data)
+    assert(not err)
+    if data then
+        io.write("[OUT] ", data)
+    end
+end
+
+
 local function startProcess(command, args)
-        --old method using shell new method spawns a process using
-        -- the libuv lua library 
-
-        --local pipe = io.popen(fullCommand)
-        --if not pipe then
-            --print("command produced no output")
-            --return 
-        --end 
-        --local output = pipe:read(8192)
-        --local ok, reason, code = pipe:close()
-
     local stdout = uv.new_pipe(false)
     local stderr = uv.new_pipe(false)
     local code = nil
@@ -67,21 +64,17 @@ local function startProcess(command, args)
         end
     )
 
-    local uv.read_start()
+    print("Started process with pid:", pid) 
+    
+    uv.read_start(stdout, getStdioData("OUT"))
+   
+    uv.read_start(stderr, getsStdioData("ERR"))
 
-
-
-
-
-
-
-
-
-
-
-    return 
-
+    uv.run()
+    
+    return (stdout, stderr, code) 
 end
+    
 
 return   {
     description = "Run an allowed command and use AI to explain the output.",
@@ -93,7 +86,7 @@ return   {
         local target = "what"
         local baseCommand = ""
         local commandArgs = {}
-        for i, v in ipairs(args)
+
             if v == target then 
                 baseCommand = args[i+1]
                 commandArgs = table.concat(args, " ", i+2)
@@ -155,3 +148,17 @@ return   {
     end
 
 }
+
+
+
+        --old method using shell new method spawns a process using
+        -- the libuv lua library 
+
+        --local pipe = io.popen(fullCommand)
+        --if not pipe then
+            --print("command produced no output")
+            --return 
+        --end 
+        --local output = pipe:read(8192)
+        --local ok, reason, code = pipe:close()
+
