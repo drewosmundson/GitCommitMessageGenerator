@@ -131,7 +131,7 @@ return {
 
         if not baseCommand or baseCommand == "" then
             print("Usage: luna what <command> [args...]")
-            return 
+            return nil
         end
 
         if not ALLOWED[baseCommand] then
@@ -143,7 +143,7 @@ return {
         if table.concat(commandArgs, " "):find(BLOCKED_CHAR) then
             print("command contains blocked charectors")
             print("edit this in commands/what.lua BLOCKED_CHAR")
-            return
+            return nil
         end
 
         print("Are you sure you want to run this command?:")
@@ -154,7 +154,7 @@ return {
 
         if input ~= "y" then
             print(input .. " cancelled")
-            return
+            return nil
         end
 
         local processOutputTable = startProcess(baseCommand, commandArgs)
@@ -179,7 +179,7 @@ return {
 
         if input ~= "y" then
             print(input) 
-            return
+            return nil
         end
 
         -- git add .
@@ -187,10 +187,9 @@ return {
 
         -- send output prompt and diff to local llm 
 
-
-        return
+        t = {}
+        return t
     end
-
 }
 
 

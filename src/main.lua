@@ -92,17 +92,19 @@ function main()
 
     for file in lfs.dir("commands/") do
         local name = file:match("^(.+)%.lua$")
-    
+
         if name then
             local ok, command = pcall(require, "commands." .. name)
-    
-            if ok and type(command) == "table" then
-                commands[name] = command
+
+            if not ok then
+                print(("Failed to load %s: %s"):format(name, command))
+            elseif type(command) ~= "table" then
+                print(name .. " command must return a table")
             else
-                print("Failed to load command:", name)
+                commands[name] = command
             end
         end
-    end 
+    end
 
 
     local app = {
@@ -115,19 +117,19 @@ function main()
     } 
 
     if userArg == nil then
-        commands["help"].run(app, flag)
+        commands["help"].run(app, arg)
         return
     end
 
 
     if not commands[userArg] then
         print(string.format("'%s' is not a valid command.", tostring(userArg)))
-        commands["help"].run(app, flag)
+        commands["help"].run(app, arg)
         return
     end
 
 
-    commands[userArg].run(app, flag)
+    commands[userArg].run(app, arg)
 
 
     return true
