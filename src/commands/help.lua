@@ -5,7 +5,7 @@
 
 return {
     description = "Shows this help message",
-    run = function(app)
+    run = function(app, arg)
         print("Usage: luna <command>\n")
         print("Commands:")
         for name, command in pairs(app.commands) do

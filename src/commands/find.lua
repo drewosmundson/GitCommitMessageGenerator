@@ -12,8 +12,8 @@ local REGISTRIES = {
 
 return {
     description = "Find name accross package registries",
-    run = function(app, flag)
-        local name = flag
+    run = function(app, arg)
+        local name = arg[2]
 
         if not name then
             print("Usage: <script> isNameAvailable <name>")

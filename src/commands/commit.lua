@@ -27,7 +27,7 @@ return {
     description = "Generates a commit message from the diff since the last commit using the installed LLM",
 
 
-    run = function(app, flag)
+    run = function(app, arg)
         os.execute("git add .")
 
         local handle = io.popen("git diff --staged")

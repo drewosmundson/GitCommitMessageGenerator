@@ -18,7 +18,7 @@ return {
     description = "Given the previous output of the terminal explain what its meaning is",
 
 
-    run = function(app, args)
+    run = function(app, arg)
     
         local command = table.concat(arg, " ", 2)
         

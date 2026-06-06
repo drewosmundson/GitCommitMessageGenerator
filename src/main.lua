@@ -86,7 +86,6 @@ function main()
     if not checkDependencies() then return end
 
     local userArg = arg[1]
-    local flag = arg[2]
 
     local commands = {}
 
