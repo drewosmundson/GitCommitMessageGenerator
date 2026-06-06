@@ -38,13 +38,10 @@ local BLOCKED_CHAR = "[;&><|`$]"
 --    }
 --)
 
-local function startProcess(command, args, options)
+local function startProcess(command, args)
 
     stdout = {}
     stderr = {} 
-
-
-
 
 
 
@@ -58,13 +55,20 @@ return   {
     run = function(app, args) 
 
         -- $luna what lua main.lua commit
-
-        local baseCommand = args[2] -- "lua"
+        -- $lua main.lua what lua main.lua commit 
+        local target = "what"
+        local baseCommand = "" 
+        local commandArgs = {}
+        for i, v in ipairs(args)
+            if v == target then 
+                baseCommand = args[i+1]
+                commandArgs = table.concat(args, " ", i+2)
+            end
+        end
 
         if not baseCommand or baseCommand == "" then
             print("Usage: luna what <command> [args...]")
-            print("Example: what lua main.lua")
-            return
+            return 
         end
 
         if not ALLOWED[baseCommand] then
@@ -73,34 +77,39 @@ return   {
             return
         end
 
-        local command = table.concat(args, " ", 2)
-
-        if command:find(BLOCKED_CHAR) then 
+        if commandArgs:find(BLOCKED_CHAR) then 
             print("command contains blocked charectors")
             print("edit this in commands/what.lua BLOCKED_CHAR")
             return
         end
 
         print("Are you sure you want to run this command?:")
-        print(command)
+        print(baseCommand .. " " .. commandArgs)
         print("( y / n )")
 
         local input = io.read()
 
         if input ~= "y" then
-            print(input) 
+            print(input .. " cancelled")
             return
         end
-            
-        local pipe = io.popen(command)
-    
-        if not pipe then
-            print("command produced no output")
-            return 
-        end 
 
-        local output = pipe:read(8192)
-        local ok, reason, code = pipe:close()
+
+        --old method using shell new method spawns a process using
+        -- the libuv lua library 
+
+        --local pipe = io.popen(fullCommand)
+        --if not pipe then
+            --print("command produced no output")
+            --return 
+        --end 
+        --local output = pipe:read(8192)
+        --local ok, reason, code = pipe:close()
+
+        local processOutputTable = startProcess(baseCommand, commandArgs)
+
+
+
         -- send output and instruction prompt to llm
         -- print out llms explination of the output of the command 
 
