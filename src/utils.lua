@@ -16,6 +16,8 @@ function utils.getLuaFilesFromDirectory(path)
     return files
 end
 
+
+
 function utils.loadModulesFromFileTable(path, fileTable)
     local loadedModules = {}
 
@@ -37,6 +39,33 @@ function utils.tableContains(table, value)
     end
     return false
 end
+
+--- Sends a prompt to the configured Ollama model and returns the response text.
+-- @param prompt string: The prompt to send
+-- @return string|nil, string|nil: (message, err)
+function utils.promptModel(prompt)
+    local body = app.json.encode({
+        model = app.PREFERRED_AI_MODEL,
+        prompt = prompt,
+        stream = false,
+    })
+
+    local responseRaw = app.http.postJson(app.OLLAMA_URL .. "/api/generate", body)
+    local response, _, err = app.json.decode(responseRaw)
+
+    if err or not response then
+        return nil, "Failed to parse Ollama response: " .. tostring(err)
+    end
+
+    local message = response.response and response.response:match("^%s*(.-)%s*$")
+
+    if not message or message == "" then
+        return nil, "No response returned from model."
+    end
+
+    return message, nil
+end
+
 
 function utils.startProcess(path, args, TIMEOUT_LIMIT)
 
@@ -88,7 +117,7 @@ function utils.startProcess(path, args, TIMEOUT_LIMIT)
         return nil, "Failed to spawn process: " .. pid
     end
 
-    print("Started process with pid:", pid)
+    print("Started process with pid:" .. pid)
 
 
     uv.read_start(stdout, function(err, data)

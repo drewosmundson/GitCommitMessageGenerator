@@ -26,7 +26,6 @@ local PROMPTS = {
 return {
     description = "Generates a commit message from the diff since the last commit using the installed LLM",
 
-
     run = function(app, arg)
         os.execute("git add .")
 
@@ -39,14 +38,14 @@ return {
             return false
         end
 
+        print("Generating commit message...")
+
         local prompt = string.format(PROMPTS.GIT_COMMIT_INSTRUCTIONS, diff)
         local body = app.json.encode({
             model = app.PREFERRED_AI_MODEL,
             prompt = prompt,
             stream = false,
         })
-
-        print("Generating commit message...")
 
         local responseRaw = app.http.postJson(app.OLLAMA_URL .. "/api/generate", body)
         local response, _, err = app.json.decode(responseRaw)

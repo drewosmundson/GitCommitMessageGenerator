@@ -31,6 +31,7 @@ local TIMEOUT_LIMIT = 100000 -- Miliseconds
 
 local unpack = table.unpack or unpack -- Lua 5.1 vs Lua 5.2
 
+-- Termial colored text. use reset at the end of each line
 local red     = "\27[31m"
 local green   = "\27[32m"
 local yellow  = "\27[33m"
@@ -75,7 +76,7 @@ return {
 
         print("Are you sure you want to run this command?:")
         print(baseCommand .. " " .. table.concat(commandArgs, " "))
-        print("( y / n )")
+        print("(y / n)")
 
         local input = io.read()
 
@@ -86,6 +87,7 @@ return {
 
         local result = app.utils.startProcess(baseCommand, commandArgs, TIMEOUT_LIMIT)
 
+
         if result.stdout ~= "" then
             print(green .. "Output:\n" .. result.stdout .. reset)
         end
@@ -95,12 +97,14 @@ return {
         print(green .. "Exit code:", result.exitCode .. reset)
 
 
-        -- TODO BELOW
-        -- send output and instruction prompt to llm
-        -- print out llms explination of the output of the command 
+        local message = string.format(PROMTS.EVALUATE_COMMAND_OUTPUT, string.concat(result))
 
-        print("would you like to compare to your last commit to try and diagnose?:")
-        print("( y / n )")
+        local responce = app.utils.promptModel(message)
+
+        print(responce)
+
+        print("would you like to compare the changes to your last commit?:")
+        print("(y / n)")
 
         input = io.read()
 
