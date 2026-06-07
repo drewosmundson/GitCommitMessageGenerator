@@ -97,9 +97,10 @@ return {
         print(green .. "Exit code:", result.exitCode .. reset)
 
 
-        local message = string.format(PROMTS.EVALUATE_COMMAND_OUTPUT, string.concat(result))
-
-        local responce = app.utils.promptModel(message)
+        local api = app.OLLAMA_URL .. "/api/generate"
+        print("API URL: " .. api)
+        local message = string.format(PROMTS.EVALUATE_COMMAND_OUTPUT, table.concat(result))
+        local responce = app.utils.promptModel(PREFERRED_AI_MODEL, message, api)
 
         print(responce)
 

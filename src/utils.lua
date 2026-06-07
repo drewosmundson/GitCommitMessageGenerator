@@ -1,9 +1,13 @@
 
 local lfs = require("lfs")
 local uv = require("luv")
-
+local json = require("dkjson")
+local http = require("socket.http")
+local ltn12 = require("ltn12")
 
 local utils = {}
+
+-- No state functions anly
 
 function utils.getLuaFilesFromDirectory(path)
     local files = {}
@@ -16,6 +20,43 @@ function utils.getLuaFilesFromDirectory(path)
     return files
 end
 
+function utils.getJson(url)
+    local body, code = http.request(url)
+    if code ~= 200 then error("Request failed: " .. tostring(code)) end
+
+    local data, _, err = json.decode(body)
+    if err then error("JSON decode failed: " .. err) end
+
+    return data
+end
+
+function utils.postJson(url, body)
+    local responseBody = {}
+    local _, code = http.request({
+        url = url,
+        method = "POST",
+        headers = {
+            ["Content-Type"] = "application/json",
+            ["Content-Length"] = tostring(#body),
+        },
+        source = ltn12.source.string(body),
+        sink = ltn12.sink.table(responseBody),
+    })
+    if code ~= 200 then
+        error("Ollama request failed with code: " .. tostring(code))
+    end
+    return table.concat(responseBody)
+end 
+
+
+function utils.getHttpStatus(url)
+    local cmd = string.format("curl -s -o /dev/null -w '%%{http_code}' -L --max-time 5 '%s'", url)
+    local handle = io.popen(cmd)
+    if not handle then return 0 end
+    local result = handle:read("*a")
+    handle:close()
+    return tonumber(result) or 0
+end
 
 
 function utils.loadModulesFromFileTable(path, fileTable)
@@ -43,15 +84,15 @@ end
 --- Sends a prompt to the configured Ollama model and returns the response text.
 -- @param prompt string: The prompt to send
 -- @return string|nil, string|nil: (message, err)
-function utils.promptModel(prompt)
-    local body = app.json.encode({
-        model = app.PREFERRED_AI_MODEL,
+function utils.promptModel(model, prompt, api)
+    local body = json.encode({
+        model =  model,
         prompt = prompt,
         stream = false,
     })
 
-    local responseRaw = app.http.postJson(app.OLLAMA_URL .. "/api/generate", body)
-    local response, _, err = app.json.decode(responseRaw)
+    local responseRaw = utils.postJson(api, body)
+    local response, _, err = json.decode(responseRaw)
 
     if err or not response then
         return nil, "Failed to parse Ollama response: " .. tostring(err)
