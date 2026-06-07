@@ -3,7 +3,6 @@ local lfs = require("lfs")
 local uv = require("luv")
 
 
-
 local utils = {}
 
 function utils.getLuaFilesFromDirectory(path)
@@ -39,8 +38,8 @@ function utils.tableContains(table, value)
     return false
 end
 
-function utils.startProcess(path, args, timeoutLimit)
-    
+function utils.startProcess(path, args, TIMEOUT_LIMIT)
+
     local stdout = uv.new_pipe(false)
     local stderr = uv.new_pipe(false)
 
@@ -62,7 +61,7 @@ function utils.startProcess(path, args, timeoutLimit)
             stdio = { nil, stdout, stderr }
         },
 
-        function(code, signal)              -- Callback
+        function(code, signal)
             exitCode   = code
             exitSignal = signal
             done       = true
@@ -71,15 +70,23 @@ function utils.startProcess(path, args, timeoutLimit)
             timer:close()
             stdout:close()
             stderr:close()
-            handle:close()
 
+            -- handle can be nil if the process exited very fast
+            -- before uv.spawn finished setting it up
+            if handle then
+                handle:close()
+                handle = nil
+            end
         end
     )
 
     if not handle then
-        return nil, "Failed to spawn process: " .. pid  -- pid holds err msg on failure
+        timer:stop()
+        timer:close()
+        stdout:close()
+        stderr:close()
+        return nil, "Failed to spawn process: " .. pid
     end
-
 
     print("Started process with pid:", pid)
 
@@ -95,20 +102,30 @@ function utils.startProcess(path, args, timeoutLimit)
     end)
 
 
-    timer:start(timeoutLimit, 0, function()
+    timer:start(TIMEOUT_LIMIT, 0, function()
+        -- Early return if the process already finished normally, the spawn callback already closed pipes
+        if done then
+            timer:stop()
+            timer:close()
+            return
+        end
         print("Process timed out")
-        if handle and not handle:is_closing() then handle:kill("sigterm") end
 
+        -- check handle is non-nil and not already closing before killing, since the spawn callback may have run between ticks if the prosses finishes very quickly
+        if handle and not handle:is_closing() then
+            handle:kill("sigterm")
+            handle:close()
+            handle = nil
+        end
         if not stdout:is_closing() then stdout:close() end
         if not stderr:is_closing() then stderr:close() end
-
         timer:stop()
         timer:close()
     end)
 
 
     while not done do
-        uv.run("nowait")
+        uv.run("once")
     end
 
 

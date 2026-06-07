@@ -1,4 +1,4 @@
-local uv = require("luv")
+
 
 local PROMTS = {
 
@@ -29,6 +29,13 @@ local BLOCKED_CHAR = "[;&><|`$]"
 
 local TIMEOUT_LIMIT = 100000 -- Miliseconds
 
+local unpack = table.unpack or unpack -- Lua 5.1 vs Lua 5.2
+
+local red     = "\27[31m"
+local green   = "\27[32m"
+local yellow  = "\27[33m"
+local blue    = "\27[34m"
+local reset   = "\27[0m"
 
 return {
     description = "Run an allowed command and use AI to explain the output.",
@@ -44,7 +51,7 @@ return {
         for i, v in ipairs(args) do
             if v == target then
                 baseCommand = args[i+1]
-                commandArgs = { table.unpack(args, i+2) }
+                commandArgs = { unpack(args, i+2) }
                 break
             end
         end
@@ -77,15 +84,15 @@ return {
             return nil
         end
 
-        local utils.processOutputTable = startProcess(baseCommand, commandArgs, TIMEOUT_LIMIT)
+        local result = app.utils.startProcess(baseCommand, commandArgs, TIMEOUT_LIMIT)
 
-
-        for i, v in ipairs(processOutputTable) do
-            print(i, v)
+        if result.stdout ~= "" then
+            print(green .. "Output:\n" .. result.stdout .. reset)
         end
-
-
-
+        if result.stderr ~= "" then
+            print(red .. "Errors:\n" .. result.stderr .. reset)
+        end
+        print(green .. "Exit code:", result.exitCode .. reset)
 
 
         -- TODO BELOW

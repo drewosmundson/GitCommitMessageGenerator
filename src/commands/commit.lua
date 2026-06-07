@@ -40,7 +40,7 @@ return {
         end
 
         local prompt = string.format(PROMPTS.GIT_COMMIT_INSTRUCTIONS, diff)
-        local body = app.JSON.encode({
+        local body = app.json.encode({
             model = app.PREFERRED_AI_MODEL,
             prompt = prompt,
             stream = false,
@@ -48,8 +48,8 @@ return {
 
         print("Generating commit message...")
 
-        local responseRaw = app.HTTP.postJson(app.OLLAMA_URL .. "/api/generate", body)
-        local response, _, err = app.JSON.decode(responseRaw)
+        local responseRaw = app.http.postJson(app.OLLAMA_URL .. "/api/generate", body)
+        local response, _, err = app.json.decode(responseRaw)
 
         if err or not response then
             print("Failed to parse Ollama response: " .. tostring(err))

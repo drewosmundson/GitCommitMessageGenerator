@@ -109,9 +109,9 @@ function main()
     local app = {
         PREFERRED_AI_MODEL = PREFERRED_AI_MODEL,
         OLLAMA_URL         = OLLAMA_URL,
-        UTILS              = require("utils"),
-        JSON               = require("dkjson"),
-        HTTP               = require("http"),
+        utils              = require("utils"),
+        json               = require("dkjson"),
+        http               = require("http"),
         commands           = commands
     } 
 
