@@ -25,6 +25,7 @@ local ALLOWED = {
     node = true ,
     java = true,
     lua = true ,
+    git = true,
 }
 
 local BLOCKED_CHAR = "[;&><|`$]"
@@ -81,9 +82,9 @@ return {
   
 
         local input = io.read()
-
-        if input ~= "y" then
-            print(input .. " cancelled")
+        if input == "y" or input == "" then
+            print("Running command...")
+        else
             return nil
         end
 
