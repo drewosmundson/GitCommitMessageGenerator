@@ -7,7 +7,6 @@ local ltn12 = require("ltn12")
 
 local utils = {}
 
--- No state functions anly
 
 function utils.getLuaFilesFromDirectory(path)
     local files = {}
@@ -18,6 +17,19 @@ function utils.getLuaFilesFromDirectory(path)
         end
     end
     return files
+end
+
+
+function utils.wrap(str, limit)
+    limit = limit or 72
+    local here = 1
+    local wrapped = str:gsub("(%s+)()(%S+)()", function(sp, st, word, fi)
+        if fi - here > limit then
+            here = st
+            return "\n" .. word
+        end
+    end)
+    return wrapped
 end
 
 function utils.getJson(url)

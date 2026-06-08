@@ -1,14 +1,16 @@
 
 
-local PROMTS = {
+local PROMPTS = {
 
-    EVALUATE_COMMAND_OUTPUT = [[You are a developer assistant. 
+    EVALUATE_COMMAND_OUTPUT = 
+        [[You are a developer assistant.
         The user ran a terminal command and you are given its output.
         Explain clearly what the output means, highlight any errors or warnings, 
-        and suggest next steps if relevant. Be concise.]],
+        and suggest next steps if relevant. Be concise. Must have a responce under 200 words]],
 
 
-    EVALUATE_WITH_DIFF = [[You are a developer assistant.
+    EVALUATE_WITH_DIFF = 
+        [[You are a developer assistant.
         The user ran a terminal command and you are given its output along with 
         a git diff of their recent changes.
         Explain what the output means in the context of the diff.
@@ -74,9 +76,9 @@ return {
             return nil
         end
 
-        print("Are you sure you want to run this command?:")
-        print(baseCommand .. " " .. table.concat(commandArgs, " "))
-        print("(y / n)")
+        print("Are you sure you want to run this command?: (y/n)")
+        print(green .. baseCommand .. " " .. table.concat(commandArgs, " ") .. reset)
+  
 
         local input = io.read()
 
@@ -89,23 +91,51 @@ return {
 
 
         if result.stdout ~= "" then
-            print(green .. "Output:\n" .. result.stdout .. reset)
+            print(green .. "Stdout:\n" .. result.stdout .. reset)
         end
         if result.stderr ~= "" then
             print(red .. "Errors:\n" .. result.stderr .. reset)
         end
-        print(green .. "Exit code:", result.exitCode .. reset)
+        if result.signal ~= "" then
+            print(blue .. "Signal: " .. result.signal .. reset)
+        end
+        print(blue .. "Exit code: " .. result.exitCode .. reset)
 
+        local resultString = string.format(
+            "Stdout:\n%s\nStderr:\n%s\nSignal: %d\nExit code: %d",
+            result.stdout,
+            result.stderr,
+            result.signal,
+            result.exitCode
+        )
 
-        local api = app.OLLAMA_URL .. "/api/generate"
-        print("API URL: " .. api)
-        local message = string.format(PROMTS.EVALUATE_COMMAND_OUTPUT, table.concat(result))
-        local responce = app.utils.promptModel(PREFERRED_AI_MODEL, message, api)
+        local prompt = string.format(blue .. PROMPTS.EVALUATE_COMMAND_OUTPUT .. "\n%s", resultString .. reset)
+ 
+        local body = app.json.encode({
+            model = app.PREFERRED_AI_MODEL,
+            prompt = prompt,
+            stream = false,
+        })
+        local responseRaw = app.http.postJson(app.OLLAMA_URL .. "/api/generate", body)
+        local response, _, err = app.json.decode(responseRaw)
 
-        print(responce)
+        if err or not response then
+            print("Failed to parse Ollama response: " .. tostring(err))
+            return false
+        end
 
-        print("would you like to compare the changes to your last commit?:")
-        print("(y / n)")
+        local message = response.response and response.response:match("^%s*(.-)%s*$")
+
+        if not message or message == "" then
+            print("No message was returned by the model.")
+            return false
+        end
+        
+
+        print(green .. message .. reset)
+
+        print("would you like to compare the changes to your last commit?: (y/n)")
+
 
         input = io.read()
 
