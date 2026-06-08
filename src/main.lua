@@ -4,9 +4,8 @@ local UTILS = require("utils")
 local HTTP = require("http")
 
 
--- weird project root to get around using reletive paths outside of the source directory
-local ROOT = debug.getinfo(1, 'S').source:match("@(.*/)") or "./"
-ROOT = ROOT:gsub("/src/$", "/")  -- step up from src/ to project root
+local scriptPath = debug.getinfo(1, 'S').source:match("^@(.+)/[^/]+%.lua$") or "."
+local ROOT = scriptPath .. "/"
 
 local CONFIG = dofile(ROOT .. "CONFIG.lua")
 local OLLAMA_URL = CONFIG.OLLAMA_URL
@@ -27,7 +26,6 @@ local function promtUserForModelSelection(availableModels)
     print("This will update your CONFIG.lua to your selected model")
     for key, value in pairs(availableModels) do
         print(key, value)
-
     end
 
     local choice = tonumber(io.read())
@@ -35,7 +33,7 @@ local function promtUserForModelSelection(availableModels)
         print("Invalid selection. Enter a number from the list:")
         for key, value in pairs(availableModels) do
             print(key, value)
-        end                                                  
+        end
         choice = tonumber(io.read())
     end
 
@@ -43,7 +41,6 @@ local function promtUserForModelSelection(availableModels)
     savePreferredModelToConfig(model)
     return model
 end
-
 
 
 local function isInstalled(dependency)
@@ -83,7 +80,6 @@ function checkDependencies()
 end
 
 
-
 ---------- MAIN --------------------
 
 function main()
@@ -109,7 +105,6 @@ function main()
         end
     end
 
-
     local app = {
         PREFERRED_AI_MODEL = PREFERRED_AI_MODEL,
         OLLAMA_URL         = OLLAMA_URL,
@@ -117,13 +112,12 @@ function main()
         json               = require("dkjson"),
         http               = require("http"),
         commands           = commands
-    } 
+    }
 
     if userArg == nil then
         commands["help"].run(app, arg)
         return
     end
-
 
     if not commands[userArg] then
         print(string.format("'%s' is not a valid command.", tostring(userArg)))
@@ -131,11 +125,9 @@ function main()
         return
     end
 
-
     commands[userArg].run(app, arg)
-
 
     return true
 end
 
-main() 
+main()
