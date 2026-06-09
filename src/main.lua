@@ -4,23 +4,27 @@ local UTILS = require("utils")
 local HTTP = require("http")
 
 
-local CONFIG = dofile("CONFIG.lua")
+local CONFIG = dofile("config.lua")
 local OLLAMA_URL = CONFIG.OLLAMA_URL
 local PREFERRED_AI_MODEL = CONFIG.PREFERRED_AI_MODEL
 
 local function savePreferredModelToConfig(model)
-    local file = io.open("CONFIG.lua", "w")
+    local file = io.open("config.lua", "w")
     file:write(string.format(
-    [[return {
+    [[
+    -- config.lua
+    return {
       OLLAMA_URL = "http://127.0.0.1:11434",
       PREFERRED_AI_MODEL = "%s",
-    }]], model))
+    }
+    ]],
+     model))
     file:close()
 end
 
 local function promtUserForModelSelection(availableModels)
     print("Enter the number of the model you would like to use:")
-    print("This will update your CONFIG.lua to your selected model")
+    print("This will update your config.lua to your selected model")
     for key, value in pairs(availableModels) do
         print(key, value)
     end
