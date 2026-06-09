@@ -1,3 +1,5 @@
+-- commit.lua
+
 local PROMPTS = {
         GIT_COMMIT_INSTRUCTIONS = [[
             You generate a single git commit message from a git diff.
@@ -27,9 +29,11 @@ return {
     description = "Generates a commit message from the diff since the last commit using the installed LLM",
 
     run = function(app, arg)
-        os.execute("git add .")
+        local cwd = os.getenv("LUNA_CWD") or "."
+        os.execute('git -C "' .. cwd .. '" add .')
 
-        local handle = io.popen("git diff --staged")
+        local handle = io.popen('git -C "' .. cwd .. '" diff --staged')
+
         local diff = handle:read("*a")
         handle:close()
 
@@ -70,7 +74,8 @@ return {
 
         if confirm:lower() == "y" then
             local commitCmd = string.format(
-                'git commit -m "%s"',
+                'git -C "%s" commit -m "%s"',
+                cwd,
                 message:gsub('"', '\\"')
             )
 

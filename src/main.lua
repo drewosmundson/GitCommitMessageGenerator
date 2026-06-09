@@ -4,15 +4,12 @@ local UTILS = require("utils")
 local HTTP = require("http")
 
 
-local scriptPath = debug.getinfo(1, 'S').source:match("^@(.+)/[^/]+%.lua$") or "."
-local ROOT = scriptPath .. "/"
-
-local CONFIG = dofile(ROOT .. "CONFIG.lua")
+local CONFIG = dofile("CONFIG.lua")
 local OLLAMA_URL = CONFIG.OLLAMA_URL
 local PREFERRED_AI_MODEL = CONFIG.PREFERRED_AI_MODEL
 
 local function savePreferredModelToConfig(model)
-    local file = io.open(ROOT .. "CONFIG.lua", "w")
+    local file = io.open("CONFIG.lua", "w")
     file:write(string.format(
     [[return {
       OLLAMA_URL = "http://127.0.0.1:11434",
@@ -89,7 +86,7 @@ function main()
 
     local commands = {}
 
-    for file in lfs.dir(ROOT .. "commands/") do
+    for file in lfs.dir("commands/") do
         local name = file:match("^(.+)%.lua$")
 
         if name then
